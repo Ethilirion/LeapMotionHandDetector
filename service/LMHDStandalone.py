@@ -1,4 +1,12 @@
 import os, sys, inspect, thread, time, copy, math, subprocess
+
+import logging
+logging.basicConfig(filename='LMHD.log',level=logging.DEBUG)
+
+#to emit sounds
+from multiprocessing import Pool
+import winsound
+
 from datetime import datetime
 
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
@@ -12,6 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(src_dir, root_dir)))
 import Leap
 
 Continue = True
+Debug = True
 		
 class HandWrapper() :
 	def __init__(self, leap_hand) :
@@ -275,8 +284,15 @@ class HandCommand:
 		list = list + "\r\nWaiting Item :\t[" + str(self.current+ 1) + "]" + str(self.positions[self.current + 1])
 		
 		return list
-		
+	
 	def advance_in_command(self):
+		if (self.current == -1):
+			beep_for_position("0x1")
+		elif (self.current == 0):
+			beep_for_position("0x2")
+		elif (self.current == 1):
+			beep_for_position("0x3")
+	
 		self.current = self.current + 1
 		dt = datetime.now()
 		self.last_time_checked = int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0))
@@ -286,10 +302,13 @@ class HandCommand:
 	
 	def elapsed_positions(self, elapsed_positions):
 		dt = datetime.now()
+
 		if (self.last_time_checked != 0 and (int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0)) - self.last_time_checked) > 5000):
 			self.reinit()
 			return
 		if (self.validated == True):
+			self.exec_command()
+			self.reinit()
 			return
 		for position in elapsed_positions:
 			if (self.positions[self.current + 1] == position):
@@ -301,8 +320,32 @@ class HandCommand:
 	def register_command(self, commands):
 		self.command = commands
 	
+	def command_to_string(self) :
+		stringCommand = ""
+		for command in self.command:
+			if (stringCommand != ""):
+				stringCommand = stringCommand + " "
+			stringCommand = stringCommand + command
+		return stringCommand
+		
 	def exec_command(self):
-		subprocess.call(self.command)
+		beep_for_position("RS")
+		if (self.command == []) :
+			return
+		logging.info('Executed command')
+		logging.info(self.positions)
+		
+		try :
+			subprocess.Popen(self.command)
+		except :
+			beep_for_position("BUG")
+		
+		#os.system('start ' + self.command_to_string())
+		
+		# f = open('instructions\instructions.txt','w')
+		# f.write(self.command_to_string()) # python will convert \n to os.linesep
+		# f.close()
+		# logging.info('written : ' + self.command_to_string())
 	
 	def __init__(self):
 		self.validated = False
@@ -312,38 +355,114 @@ class HandCommand:
 		self.last_time_checked = 0
 
 
+def beep_for_position(position) :
+	Dur = 200 # Set Duration To 1000 ms == 1 second
+	if (position == "A") :
+		Freq = 400
+	elif (position == "B") :
+		Freq = 50
+	elif (position == "C") :
+		Freq = 600
+	elif (position == "D") :
+		Freq = 700
+	elif (position == "E") :
+		Freq = 800
+	elif (position == "REG") :
+		Freq = 900
+	elif (position == "FIST") :
+		Freq = 1000
+	elif (position == "KH") :
+		Freq = 1100
+	elif (position == "FV") :
+		Freq = 1200
+	elif (position == "RS") :
+		Freq = 1300
+	elif (position == "BUG") :
+		Freq = 3000
+		Dur = 500
+	elif (position == "0x1"):
+		Freq = 2000
+	elif (position == "0x2"):
+		Freq = 2200
+	elif (position == "0x3"):
+		Freq = 2400
+	else :
+		return
+	winsound.Beep(Freq, Dur)
+
 def main():
 	try:
-		controller = Leap.Controller()
 		global Continue
+		pool = Pool(processes=1)
 		
-		
-		# exitCommand = HandCommand()
+		controller = Leap.Controller()
+		backgroundModeAllowed = controller.config.get("background_app_mode") == 2
+		if not backgroundModeAllowed:
+			controller.config.set("background_app_mode", 2)
+			controller.config.save()
+			current = controller.policy_flags
+			augmented = current & (1 << 15)
+			controller.set_policy_flags(augmented)
+			augmented = augmented & (1 << 23)
+			controller.set_policy_flags(augmented)
+		controller.set_policy(Leap.Controller.POLICY_BACKGROUND_FRAMES)
+
+		exitCommand = HandCommand()
 		# exitCommand.addPositions("C", "A", "C", "E")
-		
+		exitCommand.addPositions("C", "A", "C")
+
 		bloup = HandCommand()
 		bloup.addPositions("E", "REG", "E", "A")
-		
+
 		deliveryFolder = HandCommand()
 		deliveryFolder.addPositions("FV", "A", "RS")
-		deliveryFolder.register_command(['explorer.exe', 'Z:\VFAC\Livraisons'])
-		
+		#deliveryFolder.addPositions("FV", "A")
+		deliveryFolder.register_command(['explorer.exe', 'D:\Documents\Dev\py\LeapMotion\LeapMotionHandDetector\service'])
+
 		while (Continue == True):
+		
 			Continue = True
 			
 			time.sleep(0.25);
 			frame = controller.frame()
+			
 			handlist = frame.hands
+			
+			if (Debug == True) :
+				logging.info('>>>>>>>>>>>>>>>')
+				dt = datetime.now()
+				logging.info('Time :' + str(dt.hour) + ":" + str(dt.minute) + ":" + str(dt.second) + ":" + str(dt.microsecond))
+				logging.info(int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0)))
+				logging.info('Frame : ' + str(frame))
+				logging.info('Handlist : ' + str(handlist))
+				logging.info('Handlist empty : ' + str(handlist.is_empty))
+		
 			if handlist.is_empty:
+				logging.info('<<<<<<<<<<<<<<<')
 				continue
+			
 			hand = HandWrapper(handlist[0])
-						
+			
+			if (Debug == True) :
+				logging.info('Hand : ' + str(hand))
+				logging.info('Pos A : '+ str(hand.position_a()))
+				logging.info('Pos B : '+ str(hand.position_b()))
+				logging.info('Pos C : '+ str(hand.position_c()))
+				logging.info('Pos D : '+ str(hand.position_d()))
+				logging.info('Pos E : '+ str(hand.position_e()))
+				logging.info('Pos REG : '+ str(hand.position_regular()))
+				logging.info('Pos FIST : '+ str(hand.position_fist()))
+				logging.info('Pos KH : '+ str(hand.position_king_hand()))
+				logging.info('Pos FV : '+ str(hand.position_flat_v()))
+				logging.info('Pos RS : '+ str(hand.position_revert_spiderman()))
+				logging.info('<<<<<<<<<<<<<<<')
+		
 			## positions logic
 			positions = []
 			if (hand.position_a()):
 				positions.append("A")
 			if (hand.position_b()):
-				positions.append("D")
+				positions.append("B")
 			if (hand.position_c()):
 				positions.append("C")
 			if (hand.position_d()):
@@ -361,27 +480,20 @@ def main():
 			if (hand.position_revert_spiderman()):
 				positions.append("RS")
 			
-			
-			bloup.elapsed_positions(positions)
+			#bloup.elapsed_positions(positions)
 			deliveryFolder.elapsed_positions(positions)
 			
-			
-			if (deliveryFolder.validated):
-				deliveryFolder.reinit()
-				deliveryFolder.exec_command()
-				
-			if (bloup.validated):
-				bloup.reinit()
-			
 			## commands execution logic
-			# exitCommand.elapsed_positions(positions)
-			# if (exitCommand.validated == True):
-				# Continue = False
-			
-			
-	except KeyboardInterrupt:
-		pass
-
+			exitCommand.elapsed_positions(positions)
+			if (exitCommand.validated == True):
+				Continue = False
+	except :
+		logging.debug('Program stopped unexpectedly')
+		logging.debug(sys.exc_info())
+		
 if __name__ == "__main__":
+	if (Debug == True) :
+		logging.info('Program starting')
 	main()
-	
+	if (Debug == True) :
+		logging.info('Program ending')
