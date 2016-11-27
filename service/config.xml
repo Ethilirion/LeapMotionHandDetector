@@ -1,0 +1,68 @@
+<lmdh>
+	<config>
+		<frequency>0.25</frequency>
+		<beep>all</beep>
+	</config>
+	<command name="cmd">
+		<steps>
+			<step>E</step>
+			<step>REG</step>
+			<step>E</step>
+			<step>A</step>
+		</steps>
+		<exec program="C:\Windows\System32\cmd.exe">
+		</exec>
+	</command>
+	<command name="deliveryFolder">
+		<steps>
+			<step>FV</step>
+			<step>A</step>
+			<step>RS</step>
+		</steps>
+		<exec program="explorer.exe">
+			<argument value="D:\Documents\Dev\py\LeapMotion\LeapMotionHandDetector\service"/>
+		</exec>
+	</command>
+	<command name="league">
+		<steps>
+			<step>FIST</step>
+			<step>C</step>
+			<step>E</step>
+		</steps>
+		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
+			<argument value="https://www.google.com/"/>
+		</exec>
+	</command>
+	<command name="sleep">
+		<steps>
+			<step>REG</step>
+			<step>FIST</step>
+			<step>REG</step>
+			<step>FIST</step>
+		</steps>
+		<exec program="rundll32.exe">
+			<argument value="powrprof.dll,SetSuspendState"/>
+			<argument value="0,1,0"/>
+		</exec>
+	</command>
+	<command name="drive">
+		<steps>
+			<step>KH</step>
+			<step>C</step>
+			<step>FIST</step>
+		</steps>
+		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
+			<argument value="https://drive.google.com/drive/u/0/my-drive?ths=true"/>
+		</exec>
+	</command>
+	<command name="chrome">
+		<steps>
+			<step>KH</step>
+			<step>C</step>
+			<step>RS</step>
+		</steps>
+		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
+			<argument value="https://www.google.com/"/>
+		</exec>
+	</command>
+</lmdh>

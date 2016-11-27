@@ -1,5 +1,9 @@
 import os, sys, inspect, thread, time, copy, math, subprocess
 
+# to xml parse
+import xml.etree.ElementTree as ET
+
+# to log
 import logging
 logging.basicConfig(filename='LMHD.log',level=logging.DEBUG)
 
@@ -19,7 +23,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(src_dir, root_dir)))
 
 import Leap
 
-Continue = True
 Debug = True
 		
 class HandWrapper() :
@@ -265,7 +268,55 @@ class HandWrapper() :
 		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
 			return True
 		return False
+
+class LMHDConfig:
+	def __init__(self):
+		self.version = 1.0
+		self.frequency = 0.15
+		self.commands = []
+		self.parseFile()
 	
+	def parseConfigElement(self, configElement):
+		for config in configElement:
+			if config.tag == "frequency":
+				self.frequency = float(config.text)
+	
+	def parseCommand(self, commandElement):
+		try :
+			newCommand = HandCommand(commandElement.attrib["name"])
+			for config in commandElement:
+				if config.tag == "steps":
+					self.parseSteps(config, newCommand)
+				elif config.tag == "exec":
+					self.parseExecProgram(config, newCommand)
+			self.commands.append(newCommand)
+		except :
+			logging.error("Misformatted command in config file.")
+			logging.error(sys.exc_info())
+		
+	def parseExecProgram(self, execElement, newCommand):
+		programToExec = execElement.attrib["program"]
+		newCommandArray = []
+		newCommandArray.append(programToExec)
+		for argument in execElement:
+			if argument.tag == "argument":
+				newCommandArray.append(argument.attrib["value"])
+		newCommand.register_command(newCommandArray)
+	
+	def parseSteps(self, stepsElement, newCommand):
+		for step in stepsElement:
+			if step.tag == "step":
+				newCommand.addPositions(step.text)
+	
+	def parseFile(self):
+		tree = ET.parse("config.xml")
+		root = tree.getroot()
+		for children in root:
+			if children.tag == "config":
+				self.parseConfigElement(children)
+			elif children.tag == "command":
+				self.parseCommand(children)
+
 class HandCommand:
 	def addPositions(self, *positions_array):
 		for position in positions_array:
@@ -282,7 +333,7 @@ class HandCommand:
 			list = list + "\r\n" + position
 		list = list + "\r\nValidated :\t" + str(self.validated)
 		list = list + "\r\nWaiting Item :\t[" + str(self.current+ 1) + "]" + str(self.positions[self.current + 1])
-		
+		list = list + "\r\nCommand : " + str(self.command)
 		return list
 	
 	def advance_in_command(self):
@@ -335,9 +386,9 @@ class HandCommand:
 		return stringCommand
 		
 	def exec_command(self):
-		beep_for_position("RS")
 		if (self.command == []) :
 			return
+		beep_for_position("RS")
 		logging.info('Executed command')
 		logging.info(self.positions)
 		
@@ -345,20 +396,14 @@ class HandCommand:
 			subprocess.Popen(self.command)
 		except :
 			beep_for_position("BUG")
-		
-		#os.system('start ' + self.command_to_string())
-		
-		# f = open('instructions\instructions.txt','w')
-		# f.write(self.command_to_string()) # python will convert \n to os.linesep
-		# f.close()
-		# logging.info('written : ' + self.command_to_string())
 	
-	def __init__(self):
+	def __init__(self, name):
 		self.validated = False
 		self.command = []
 		self.positions = []
 		self.current = -1
 		self.last_time_checked = 0
+		self.name = name
 
 def beep_for_position(position) :
 	Dur = 200 # Set Duration To 1000 ms == 1 second
@@ -403,8 +448,10 @@ def beep_for_position(position) :
 
 def main():
 	try:
-		global Continue
+		Continue = True
 		pool = Pool(processes=1)
+		
+		config = LMHDConfig()
 		
 		controller = Leap.Controller()
 		#allow program to run in background
@@ -420,40 +467,19 @@ def main():
 		controller.set_policy(Leap.Controller.POLICY_BACKGROUND_FRAMES)
 
 		# built in commands
-		exitCommand = HandCommand()
+		exitCommand = HandCommand("exit")
 		exitCommand.addPositions("C", "A", "C", "E")
 		
-		
-		readConfig = HandCommand()
-		readConfig.addPositions("FIST", "FIST", "FIST", "FIST")
-		readConfig.register_command(["notepad", "test.txt"])
+		readConfig = HandCommand("readConfig")
+		readConfig.addPositions("FIST", "A", "FIST", "A")
+		#readConfig.register_command(["notepad", "test.txt"])
 
-		cmd = HandCommand()
-		cmd.addPositions("E", "REG", "E", "A")
-		cmd.register_command(["C:\Windows\System32\cmd.exe"])
-
-		deliveryFolder = HandCommand()
-		deliveryFolder.addPositions("FV", "A", "RS")
-		deliveryFolder.register_command(['explorer.exe', 'D:\Documents\Dev\py\LeapMotion\LeapMotionHandDetector\service'])
-
-		league = HandCommand()
-		league.addPositions("FIST", "C", "E")
-		league.register_command(['C:\Riot Games\League of Legends\LeagueClient.exe'])
-		
-		drive = HandCommand()
-		drive.addPositions("KH", "C", "FIST")
-		drive.register_command(["C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "https://drive.google.com/drive/u/0/my-drive?ths=true"])
-		
-		sleep = HandCommand()
-		sleep.addPositions("REG", "FIST", "REG", "FIST")
-		sleep.register_command(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"])
-		
-		
 		while (Continue == True):
 		
 			Continue = True
 			
-			time.sleep(0.25);
+			#time.sleep(0.25);
+			time.sleep(0.15);
 			frame = controller.frame()
 			
 			handlist = frame.hands
@@ -486,7 +512,7 @@ def main():
 				logging.info('Pos FV : '+ str(hand.position_flat_v()))
 				logging.info('Pos RS : '+ str(hand.position_revert_spiderman()))
 				logging.info('<<<<<<<<<<<<<<<')
-				
+
 			## positions logic
 			positions = []
 			if (hand.position_a()):
@@ -510,17 +536,19 @@ def main():
 			if (hand.position_revert_spiderman()):
 				positions.append("RS")
 			
-			deliveryFolder.elapsed_positions(positions)
-			league.elapsed_positions(positions)
-			cmd.elapsed_positions(positions)
-			drive.elapsed_positions(positions)
-			sleep.elapsed_positions(positions)
+			for handCommand in config.commands:
+				handCommand.elapsed_positions(positions)
 			
 			## commands execution logic
 			exitCommand.elapsed_positions(positions)
 			if (exitCommand.validated == True):
 				beep_for_position("0x1")
 				Continue = False
+			
+			readConfig.elapsed_positions(positions)
+			if (readConfig.validated == True):
+				beep_for_position("0x2")
+				config = LMHDConfig()
 	except :
 		logging.debug('Program stopped unexpectedly')
 		logging.debug(sys.exc_info())
