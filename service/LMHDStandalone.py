@@ -422,6 +422,11 @@ def main():
 		# built in commands
 		exitCommand = HandCommand()
 		exitCommand.addPositions("C", "A", "C", "E")
+		
+		
+		readConfig = HandCommand()
+		readConfig.addPositions("FIST", "FIST", "FIST", "FIST")
+		readConfig.register_command(["notepad", "test.txt"])
 
 		cmd = HandCommand()
 		cmd.addPositions("E", "REG", "E", "A")
@@ -438,6 +443,11 @@ def main():
 		drive = HandCommand()
 		drive.addPositions("KH", "C", "FIST")
 		drive.register_command(["C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "https://drive.google.com/drive/u/0/folders/0B2LviYHjZ6UxM1JacFVxemtRblk?ths=true"])
+		
+		sleep = HandCommand()
+		sleep.addPositions("REG", "FIST", "REG", "FIST")
+		sleep.register_command(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"])
+		
 		
 		while (Continue == True):
 		
@@ -476,7 +486,7 @@ def main():
 				logging.info('Pos FV : '+ str(hand.position_flat_v()))
 				logging.info('Pos RS : '+ str(hand.position_revert_spiderman()))
 				logging.info('<<<<<<<<<<<<<<<')
-
+				
 			## positions logic
 			positions = []
 			if (hand.position_a()):
@@ -504,6 +514,7 @@ def main():
 			league.elapsed_positions(positions)
 			cmd.elapsed_positions(positions)
 			drive.elapsed_positions(positions)
+			sleep.elapsed_positions(positions)
 			
 			## commands execution logic
 			exitCommand.elapsed_positions(positions)
