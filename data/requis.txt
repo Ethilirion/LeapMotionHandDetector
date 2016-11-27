@@ -1,3 +1,10 @@
 python 2(using 2.7)
 pywin32 (for win32service)
 LeapMotion lib folder (x86 x64 dlls too)
+
+====
+
+run cmd.exe as admin
+Powercfg -H OFF
+
+to enable the sleep command

@@ -442,7 +442,7 @@ def main():
 		
 		drive = HandCommand()
 		drive.addPositions("KH", "C", "FIST")
-		drive.register_command(["C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "https://drive.google.com/drive/u/0/folders/0B2LviYHjZ6UxM1JacFVxemtRblk?ths=true"])
+		drive.register_command(["C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "https://drive.google.com/drive/u/0/my-drive?ths=true"])
 		
 		sleep = HandCommand()
 		sleep.addPositions("REG", "FIST", "REG", "FIST")
@@ -519,6 +519,7 @@ def main():
 			## commands execution logic
 			exitCommand.elapsed_positions(positions)
 			if (exitCommand.validated == True):
+				beep_for_position("0x1")
 				Continue = False
 	except :
 		logging.debug('Program stopped unexpectedly')
