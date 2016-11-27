@@ -1,1 +1,0 @@
-"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" "https://drive.google.com/drive/u/0/folders/0B2LviYHjZ6UxM1JacFVxemtRblk?ths=true"
