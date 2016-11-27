@@ -198,7 +198,7 @@ class HandWrapper() :
 			return True
 		return False
 			
-	def fingers_extended(self, *extended):
+	def specific_fingers_extended(self, *extended):
 		for finger in self.hand.fingers:
 			finger_type_has_to_be_extended = False
 			for finger_type in extended:
@@ -251,18 +251,18 @@ class HandWrapper() :
 	
 	# fingers index and middle are extended and jointed, hand about flat, all other fingers are folded
 	def position_king_hand(self):
-		if self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
+		if self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
 			return True
 		return False
 	
 	# fingers index and middle are extended and not jointed, hand about flat, all other fingers are folded
 	def position_flat_v(self):
-		if self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and not self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
+		if self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and not self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
 			return True
 		return False
 
 	def position_revert_spiderman(self):
-		if (self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
 			return True
 		return False
 	
@@ -292,6 +292,12 @@ class HandCommand:
 			beep_for_position("0x2")
 		elif (self.current == 1):
 			beep_for_position("0x3")
+		elif (self.current == 2):
+			beep_for_position("0x4")
+		elif (self.current == 2):
+			beep_for_position("0x5")
+		else:
+			beep_for_position("0x6")
 	
 		self.current = self.current + 1
 		dt = datetime.now()
@@ -354,7 +360,6 @@ class HandCommand:
 		self.current = -1
 		self.last_time_checked = 0
 
-
 def beep_for_position(position) :
 	Dur = 200 # Set Duration To 1000 ms == 1 second
 	if (position == "A") :
@@ -378,7 +383,7 @@ def beep_for_position(position) :
 	elif (position == "RS") :
 		Freq = 1300
 	elif (position == "BUG") :
-		Freq = 3000
+		Freq = 3400
 		Dur = 500
 	elif (position == "0x1"):
 		Freq = 2000
@@ -386,6 +391,12 @@ def beep_for_position(position) :
 		Freq = 2200
 	elif (position == "0x3"):
 		Freq = 2400
+	elif (position == "0x4"):
+		Freq = 2600
+	elif (position == "0x5"):
+		Freq = 2800
+	elif (position == "0x6"):
+		Freq = 3000
 	else :
 		return
 	winsound.Beep(Freq, Dur)
@@ -396,6 +407,7 @@ def main():
 		pool = Pool(processes=1)
 		
 		controller = Leap.Controller()
+		#allow program to run in background
 		backgroundModeAllowed = controller.config.get("background_app_mode") == 2
 		if not backgroundModeAllowed:
 			controller.config.set("background_app_mode", 2)
@@ -407,18 +419,26 @@ def main():
 			controller.set_policy_flags(augmented)
 		controller.set_policy(Leap.Controller.POLICY_BACKGROUND_FRAMES)
 
+		# built in commands
 		exitCommand = HandCommand()
-		# exitCommand.addPositions("C", "A", "C", "E")
-		exitCommand.addPositions("C", "A", "C")
+		exitCommand.addPositions("C", "A", "C", "E")
 
-		bloup = HandCommand()
-		bloup.addPositions("E", "REG", "E", "A")
+		cmd = HandCommand()
+		cmd.addPositions("E", "REG", "E", "A")
+		cmd.register_command(["C:\Windows\System32\cmd.exe"])
 
 		deliveryFolder = HandCommand()
 		deliveryFolder.addPositions("FV", "A", "RS")
-		#deliveryFolder.addPositions("FV", "A")
 		deliveryFolder.register_command(['explorer.exe', 'D:\Documents\Dev\py\LeapMotion\LeapMotionHandDetector\service'])
 
+		league = HandCommand()
+		league.addPositions("FIST", "C", "E")
+		league.register_command(['C:\Riot Games\League of Legends\LeagueClient.exe'])
+		
+		drive = HandCommand()
+		drive.addPositions("KH", "C", "FIST")
+		drive.register_command(["C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", "https://drive.google.com/drive/u/0/folders/0B2LviYHjZ6UxM1JacFVxemtRblk?ths=true"])
+		
 		while (Continue == True):
 		
 			Continue = True
@@ -456,7 +476,7 @@ def main():
 				logging.info('Pos FV : '+ str(hand.position_flat_v()))
 				logging.info('Pos RS : '+ str(hand.position_revert_spiderman()))
 				logging.info('<<<<<<<<<<<<<<<')
-		
+
 			## positions logic
 			positions = []
 			if (hand.position_a()):
@@ -480,8 +500,10 @@ def main():
 			if (hand.position_revert_spiderman()):
 				positions.append("RS")
 			
-			#bloup.elapsed_positions(positions)
 			deliveryFolder.elapsed_positions(positions)
+			league.elapsed_positions(positions)
+			cmd.elapsed_positions(positions)
+			drive.elapsed_positions(positions)
 			
 			## commands execution logic
 			exitCommand.elapsed_positions(positions)
