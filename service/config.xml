@@ -1,6 +1,6 @@
 <lmdh>
 	<config>
-		<frequency>0.25</frequency>
+		<frequency>0.10</frequency>
 		<beep>all</beep>
 	</config>
 	<command name="cmd">
@@ -29,8 +29,7 @@
 			<step>C</step>
 			<step>E</step>
 		</steps>
-		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
-			<argument value="https://www.google.com/"/>
+		<exec program="C:\Riot Games\League of Legends\LeagueClient.exe">
 		</exec>
 	</command>
 	<command name="sleep">
@@ -63,6 +62,38 @@
 		</steps>
 		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
 			<argument value="https://www.google.com/"/>
+		</exec>
+	</command>
+	<command name="chrome">
+		<steps>
+			<step>KH</step>
+			<step>C</step>
+			<step>FV</step>
+		</steps>
+		<exec program="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe">
+			<argument value="-incognito"/>
+		</exec>
+	</command>
+	<command name="LeftArrow">
+		<!-- http://social.technet.microsoft.com/wiki/contents/articles/5169.vbscript-sendkeys-method.aspx -->
+		<steps>
+			<step>FP</step>
+			<step>PT</step>
+		</steps>
+		<exec program="tools\sendKeys.bat">
+			<argument value=""/>
+			<argument value="{LEFT}"/>
+		</exec>
+	</command>
+	<command name="RightArrow">
+		<!-- http://social.technet.microsoft.com/wiki/contents/articles/5169.vbscript-sendkeys-method.aspx -->
+		<steps>
+			<step>FP</step>
+			<step>PP</step>
+		</steps>
+		<exec program="tools\sendKeys.bat">
+			<argument value=""/>
+			<argument value="{RIGHT}"/>
 		</exec>
 	</command>
 </lmdh>

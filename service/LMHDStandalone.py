@@ -265,7 +265,7 @@ class HandWrapper() :
 		return False
 
 	# thumb, index and pinky extended, hand about flat, all other fingers are folded
-	def position_revert_spiderman(self):
+	def position_reverse_spiderman(self):
 		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
 			return True
 		return False
@@ -279,6 +279,30 @@ class HandWrapper() :
 	# thumb and pinky are extended, hand about flat, all other fingers are folded
 	def position_fake_phone(self):
 		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
+		
+	#  middle finger is extended, hand about flat, all other fingers are folded
+	def position_reverse_middle(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_MIDDLE)):
+			return True
+		return False
+	
+	# index and pinky are extended, hand about flat, all other fingers are folded
+	def position_devil_head(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
+	
+	# pinky is extended, hand about flat, all other fingers are folded
+	def position_pinky(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
+	
+	# thumb is extended, hand about flat, all other fingers are folded
+	def position_thumb(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB)):
 			return True
 		return False
 
@@ -522,7 +546,7 @@ def main():
 				logging.info('Pos FIST : '+ str(hand.position_fist()))
 				logging.info('Pos KH : '+ str(hand.position_king_hand()))
 				logging.info('Pos FV : '+ str(hand.position_flat_v()))
-				logging.info('Pos RS : '+ str(hand.position_revert_spiderman()))
+				logging.info('Pos RS : '+ str(hand.position_reverse_spiderman()))
 				logging.info('<<<<<<<<<<<<<<<')
 
 			## positions logic
@@ -545,8 +569,18 @@ def main():
 				positions.append("KH")
 			if (hand.position_flat_v()):
 				positions.append("FV")
-			if (hand.position_revert_spiderman()):
+			if (hand.position_reverse_spiderman()):
 				positions.append("RS")
+			if (hand.position_chinese_eight()):
+				positions.append("C8")
+			if (hand.position_fake_phone()):
+				positions.append("FP")
+			if (hand.position_devil_head()):
+				positions.append("DH")
+			if (hand.position_pinky()):
+				positions.append("PP")
+			if (hand.position_thumb()):
+				positions.append("PT")
 			
 			for handCommand in config.commands:
 				handCommand.elapsed_positions(positions)
