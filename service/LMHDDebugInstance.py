@@ -561,11 +561,11 @@ def main():
 				# print("Position : FIST : True")
 			# else :
 				# print ("Position : FIST : False")
-			if (hand.position_king_hand()):
-				print("Position : KH : True")
-			else :
-				print ("Position : KH : False")
-			print (hand.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE))	
+			# if (hand.position_king_hand()):
+				# print("Position : KH : True")
+			# else :
+				# print ("Position : KH : False")
+			print (hand.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_THUMB))	
 			
 			# if (hand.position_flat_v()):
 				# print("Position : FV : True")

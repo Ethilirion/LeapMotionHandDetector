@@ -264,8 +264,21 @@ class HandWrapper() :
 			return True
 		return False
 
+	# thumb, index and pinky extended, hand about flat, all other fingers are folded
 	def position_revert_spiderman(self):
 		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
+	
+	# thumb and index are extended, hand about flat, all other fingers are folded
+	def position_chinese_eight(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX)):
+			return True
+		return False
+	
+	# thumb and pinky are extended, hand about flat, all other fingers are folded
+	def position_fake_phone(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_PINKY)):
 			return True
 		return False
 
@@ -478,8 +491,7 @@ def main():
 		
 			Continue = True
 			
-			#time.sleep(0.25);
-			time.sleep(0.15);
+			time.sleep(config.frequency);
 			frame = controller.frame()
 			
 			handlist = frame.hands
