@@ -305,6 +305,12 @@ class HandWrapper() :
 		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB)):
 			return True
 		return False
+	
+	# thumb, index and middle fingers are extended, hand about flat, all other fingers are folded
+	def position_flat_gun(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE)):
+			return True
+		return False
 
 class LMHDConfig:
 	def __init__(self):
@@ -320,7 +326,10 @@ class LMHDConfig:
 	
 	def parseCommand(self, commandElement):
 		try :
-			newCommand = HandCommand(commandElement.attrib["name"])
+			name = "" if "name" not in commandElement.attrib else commandElement.attrib["name"]
+			newCommand = HandCommand(name)
+			newCommand.stopping = newCommand.stopping if "stopping" not in commandElement.attrib else str(commandElement.attrib["stopping"]).lower() == "true"
+			newCommand.max_expectancy_time = newCommand.max_expectancy_time if "max_expectancy_time" not in commandElement.attrib else int(commandElement.attrib["max_expectancy_time"])
 			for config in commandElement:
 				if config.tag == "steps":
 					self.parseSteps(config, newCommand)
@@ -371,6 +380,8 @@ class HandCommand:
 		list = list + "\r\nValidated :\t" + str(self.validated)
 		list = list + "\r\nWaiting Item :\t[" + str(self.current+ 1) + "]" + str(self.positions[self.current + 1])
 		list = list + "\r\nCommand : " + str(self.command)
+		list = list + "\r\nStopping : " + str(self.stopping)
+		list = list + "\r\nMax expectancy time : " + str(self.max_expectancy_time)
 		return list
 	
 	def advance_in_command(self):
@@ -397,7 +408,8 @@ class HandCommand:
 	def elapsed_positions(self, elapsed_positions):
 		dt = datetime.now()
 
-		if (self.last_time_checked != 0 and (int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0)) - self.last_time_checked) > 5000):
+		max_expectancy_time = self.max_expectancy_time
+		if (self.last_time_checked != 0 and (int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0)) - self.last_time_checked) > max_expectancy_time):
 			self.reinit()
 			return
 		if (self.validated == True):
@@ -430,7 +442,10 @@ class HandCommand:
 		logging.info(self.positions)
 		
 		try :
-			subprocess.Popen(self.command)
+			if (self.stopping == True) :
+				subprocess.call(self.command)
+			else:
+				subprocess.Popen(self.command)
 		except :
 			beep_for_position("BUG")
 	
@@ -441,6 +456,8 @@ class HandCommand:
 		self.current = -1
 		self.last_time_checked = 0
 		self.name = name
+		self.stopping = False
+		self.max_expectancy_time = 3000 #default
 
 def beep_for_position(position) :
 	Dur = 200 # Set Duration To 1000 ms == 1 second
@@ -502,7 +519,7 @@ def main():
 			augmented = augmented & (1 << 23)
 			controller.set_policy_flags(augmented)
 		controller.set_policy(Leap.Controller.POLICY_BACKGROUND_FRAMES)
-
+		
 		# built in commands
 		exitCommand = HandCommand("exit")
 		exitCommand.addPositions("C", "A", "C", "E")
@@ -548,7 +565,7 @@ def main():
 				logging.info('Pos FV : '+ str(hand.position_flat_v()))
 				logging.info('Pos RS : '+ str(hand.position_reverse_spiderman()))
 				logging.info('<<<<<<<<<<<<<<<')
-
+			
 			## positions logic
 			positions = []
 			if (hand.position_a()):
@@ -581,6 +598,8 @@ def main():
 				positions.append("PP")
 			if (hand.position_thumb()):
 				positions.append("PT")
+			if (hand.position_flat_gun()):
+				positions.append("FG")
 			
 			for handCommand in config.commands:
 				handCommand.elapsed_positions(positions)
