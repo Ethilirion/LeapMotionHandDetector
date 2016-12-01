@@ -29,10 +29,17 @@ class SwipeGestureListener(Leap.Listener):
 		self.current_gesture = None
 		self.gesture_history = collections.deque([], 10) #appendleft => add at top, pop => remove from bottom
 	
-	def manage_command(self, frame) :
+	def manage_command(self, gesture) :
 		#if direction left, do smthng
 		#if direction right, do smthng
-		print (frame.direction)
+		#if (self.current_gesture.start_position.x > gesture.position.x):
+		if (gesture.direction.x < 0):
+			print("going left")
+			#os.system("C:\Windows\System32\cmd.exe")
+			#subprocess.Popen([])
+		else:
+			print("going right")
+			#subprocess.Popen(["tools\sendMonoKey.bat", "'{RIGHT}'"])
 		return
 	
 	def is_new_gesture(self, current_gesture):
@@ -42,10 +49,14 @@ class SwipeGestureListener(Leap.Listener):
 			self.manage_command(current_gesture)
 			return
 		
+		
 		last_used_gesture = self.gesture_history[0] if len(self.gesture_history) > 0 else None
 		dt = datetime.now()
 		current_time = int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0))
 
+		if (self.current_gesture.id == current_gesture.id):
+			self.current_gesture.update_time = current_time
+		
 		if ((current_time - self.current_gesture.update_time) < 200) :
 			self.current_gesture.update_time = current_time
 		else:
@@ -53,18 +64,23 @@ class SwipeGestureListener(Leap.Listener):
 			self.current_gesture = current_gesture
 			self.manage_command(current_gesture)
 	
-	def on_connect(self, controller):
-		print ("Connected")
-
 	def on_frame(self, controller):
-		#print ("Frame available")
+		# print ("Frame available")
 		frame = controller.frame()
+		if (frame.hands.is_empty == False):
+			hand = frame.hands[0]
 
 		for gesture in frame.gestures():
-			if gesture.type is Leap.Gesture.TYPE_SWIPE:
+			if gesture.type is Leap.Gesture.TYPE_SWIPE :
 				swipe = Leap.SwipeGesture(gesture)
+				pointable = swipe.pointable
+				if (pointable.is_finger == False):
+					continue
+				print("gotten")
+				finger = Leap.Finger(pointable)
 				current_gesture = GestureInfo(swipe)
 				self.is_new_gesture(current_gesture)
+				break
 
 def main():
 	try:
@@ -79,18 +95,17 @@ def main():
 		# Gesture.Swipe.MinVelocity (def : 1000 mm/s)
 		# ex : controller.config.set("Gesture.Swipe.MinLength", 200.0)
 		controller.enable_gesture(Leap.Gesture.TYPE_SWIPE, True)
-		controller.config.set("Gesture.Swipe.MinLength", 100.0)
-		controller.config.set("Gesture.Swipe.MinVelocity", 1000.0)
+		controller.config.set("Gesture.Swipe.MinLength", 50.0)
+		controller.config.set("Gesture.Swipe.MinVelocity", 500.0)
 		controller.config.save()
 		# Have the sample listener receive events from the controller
 		controller.add_listener(listener)
 
 		# Keep this process running until Enter is pressed
-		print "Press Enter to quit..."
 		try:
-			sys.stdin.readline()
-		except KeyboardInterrupt:
-			pass
+			while (True):
+				d = 1
+				time.sleep(0.25)
 		finally:
 			# Remove the sample listener when done
 			controller.remove_listener(listener)
@@ -101,4 +116,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-	
