@@ -2,6 +2,10 @@ import os, sys, inspect, thread, time, subprocess, collections
 from multiprocessing import Pool
 from datetime import datetime
 
+# to log
+import logging
+logging.basicConfig(filename='log/LMGR.log',level=logging.DEBUG)
+
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 arch_dir = '../lib/x64' if sys.maxsize > 2**32 else '../lib/x86'
@@ -11,11 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(src_dir, arch_dir)))
 sys.path.insert(0, os.path.abspath(os.path.join(src_dir, root_dir)))
 
 import Leap
-
-
-# to log
-import logging
-logging.basicConfig(filename='LMGR.log',level=logging.DEBUG)
+from modules.Wrapper import HandWrapper
 
 class GestureInfo(Leap.SwipeGesture):
 	def __init__(self, gesture):
@@ -33,13 +33,14 @@ class SwipeGestureListener(Leap.Listener):
 		#if direction left, do smthng
 		#if direction right, do smthng
 		#if (self.current_gesture.start_position.x > gesture.position.x):
-		if (gesture.direction.x < 0):
-			print("going left")
-			#os.system("C:\Windows\System32\cmd.exe")
-			#subprocess.Popen([])
-		else:
-			print("going right")
-			#subprocess.Popen(["tools\sendMonoKey.bat", "'{RIGHT}'"])
+		try:
+			if (gesture.direction.x < 0):
+				subprocess.Popen(["pythonw", "tools\sendKeyboardKeys.py", "{LEFT}"])
+			else:
+				subprocess.Popen(["pythonw", "tools\sendKeyboardKeys.py", "{RIGHT}"])
+		except:
+			logging.debug('sendkeys failed')
+			logging.debug(sys.exc_info())
 		return
 	
 	def is_new_gesture(self, current_gesture):
@@ -71,13 +72,18 @@ class SwipeGestureListener(Leap.Listener):
 			hand = frame.hands[0]
 
 		for gesture in frame.gestures():
-			if gesture.type is Leap.Gesture.TYPE_SWIPE :
+			if gesture.type is Leap.Gesture.TYPE_SWIPE:
 				swipe = Leap.SwipeGesture(gesture)
 				pointable = swipe.pointable
 				if (pointable.is_finger == False):
 					continue
-				print("gotten")
 				finger = Leap.Finger(pointable)
+				hand = HandWrapper(finger.hand)
+				
+				if (finger.type != Leap.Finger.TYPE_INDEX and finger.type != Leap.Finger.TYPE_MIDDLE):
+					continue
+				if (hand.specific_fingers_extended(Leap.Finger.TYPE_MIDDLE, Leap.Finger.TYPE_INDEX) == False) :
+					continue
 				current_gesture = GestureInfo(swipe)
 				self.is_new_gesture(current_gesture)
 				break
@@ -88,15 +94,27 @@ def main():
 		
 		# Create a sample listener and controller
 		listener = SwipeGestureListener()
+
 		controller = Leap.Controller()
+		#allow program to run in background
+		backgroundModeAllowed = controller.config.get("background_app_mode") == 2
+		if not backgroundModeAllowed:
+			controller.config.set("background_app_mode", 2)
+			controller.config.save()
+			current = controller.policy_flags
+			augmented = current & (1 << 15)
+			controller.set_policy_flags(augmented)
+			augmented = augmented & (1 << 23)
+			controller.set_policy_flags(augmented)
+		controller.set_policy(Leap.Controller.POLICY_BACKGROUND_FRAMES)
 		
 		# config :
 		# Gesture.Swipe.MinLength (def : 150)
 		# Gesture.Swipe.MinVelocity (def : 1000 mm/s)
 		# ex : controller.config.set("Gesture.Swipe.MinLength", 200.0)
 		controller.enable_gesture(Leap.Gesture.TYPE_SWIPE, True)
-		controller.config.set("Gesture.Swipe.MinLength", 50.0)
-		controller.config.set("Gesture.Swipe.MinVelocity", 500.0)
+		controller.config.set("Gesture.Swipe.MinLength", 25.0)
+		controller.config.set("Gesture.Swipe.MinVelocity", 25.0)
 		controller.config.save()
 		# Have the sample listener receive events from the controller
 		controller.add_listener(listener)
@@ -104,7 +122,6 @@ def main():
 		# Keep this process running until Enter is pressed
 		try:
 			while (True):
-				d = 1
 				time.sleep(0.25)
 		finally:
 			# Remove the sample listener when done

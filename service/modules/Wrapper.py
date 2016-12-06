@@ -1,24 +1,5 @@
-import win32serviceutil
-import win32service
-import win32event
-import servicemanager
-import socket
+import Leap, math
 
-import os, sys, inspect, thread, time, copy, math, subprocess
-from datetime import datetime
-
-src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-
-arch_dir = 'lib/x64' if sys.maxsize > 2**32 else 'lib/x86'
-root_dir = 'lib' if sys.maxsize > 2**32 else 'lib'
-
-sys.path.insert(0, os.path.abspath(os.path.join(src_dir, arch_dir)))
-sys.path.insert(0, os.path.abspath(os.path.join(src_dir, root_dir)))
-
-import Leap
-
-Continue = True
-		
 class HandWrapper() :
 	def __init__(self, leap_hand) :
 		self.hand = leap_hand
@@ -195,7 +176,7 @@ class HandWrapper() :
 			return True
 		return False
 			
-	def fingers_extended(self, *extended):
+	def specific_fingers_extended(self, *extended):
 		for finger in self.hand.fingers:
 			finger_type_has_to_be_extended = False
 			for finger_type in extended:
@@ -248,170 +229,60 @@ class HandWrapper() :
 	
 	# fingers index and middle are extended and jointed, hand about flat, all other fingers are folded
 	def position_king_hand(self):
-		if self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
+		if self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
 			return True
 		return False
 	
 	# fingers index and middle are extended and not jointed, hand about flat, all other fingers are folded
 	def position_flat_v(self):
-		if self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and not self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
+		if self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and not self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE):
 			return True
 		return False
 
-	def position_revert_spiderman(self):
-		if (self.is_about_flat() and self.fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
+	# thumb, index and pinky extended, hand about flat, all other fingers are folded
+	def position_reverse_spiderman(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
 			return True
 		return False
 	
-class HandCommand:
-	def addPositions(self, *positions_array):
-		for position in positions_array:
-			self.positions.append(position)
+	# thumb and index are extended, hand about flat, all other fingers are folded
+	def position_chinese_eight(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX)):
+			return True
+		return False
 	
-	def reinit(self):
-		self.validated = False
-		self.current = -1
-		self.last_time_checked = 0
+	# thumb and pinky are extended, hand about flat, all other fingers are folded
+	def position_fake_phone(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
+		
+	#  middle finger is extended, hand about flat, all other fingers are folded
+	def position_reverse_middle(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_MIDDLE)):
+			return True
+		return False
 	
-	def __str__(self):
-		list = ""
-		for position in self.positions:
-			list = list + "\r\n" + position
-		list = list + "\r\nValidated :\t" + str(self.validated)
-		list = list + "\r\nWaiting Item :\t[" + str(self.current+ 1) + "]" + str(self.positions[self.current + 1])
-		
-		return list
-		
-	def advance_in_command(self):
-		self.current = self.current + 1
-		dt = datetime.now()
-		self.last_time_checked = int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0))
-		
-		servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Advanced in " + str(self.name) + " [" + str(self.current + 1) + "]",""))
-		
-		if (self.current == len(self.positions) - 1):
-			self.validated = True
+	# index and pinky are extended, hand about flat, all other fingers are folded
+	def position_devil_head(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
 	
-	def elapsed_positions(self, elapsed_positions):
-		dt = datetime.now()
-		if (self.last_time_checked != 0 and (int(round(time.time(),0)) * 1000 + int(round(dt.microsecond / 1000.0, 0)) - self.last_time_checked) > 5000):
-			self.reinit()
-			return
-		if (self.validated == True):
-			return
-		for position in elapsed_positions:
-			if (self.positions[self.current + 1] == position):
-				self.advance_in_command()
-				return
+	# pinky is extended, hand about flat, all other fingers are folded
+	def position_pinky(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_PINKY)):
+			return True
+		return False
 	
-	# ex : explorer to Z:\VFAC
-	# self.register_command(['explorer.exe', 'Z:\VFAC'])
-	def register_command(self, commands):
-		self.command = commands
+	# thumb is extended, hand about flat, all other fingers are folded
+	def position_thumb(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB)):
+			return True
+		return False
 	
-	def exec_command(self):
-		servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, servicemanager.PYS_SERVICE_STARTED, (self.name  + str(self.command),''))
-		subprocess.Popen(self.command)
-	
-	def __init__(self, name):
-		self.validated = False
-		self.command = []
-		self.positions = []
-		self.current = -1
-		self.last_time_checked = 0
-		self.name = name
-
-
-class AppServerSvc (win32serviceutil.ServiceFramework):
-	_svc_name_ = "LeapDetectHandMotions"
-	_svc_display_name_ = "LeapDetectHandMotions"
-
-	def __init__(self,args):
-		win32serviceutil.ServiceFramework.__init__(self,args)
-		self.hWaitStop = win32event.CreateEvent(None,0,0,None)
-		socket.setdefaulttimeout(60)
-
-	def SvcStop(self):
-		self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-		win32event.SetEvent(self.hWaitStop)
-		servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Requested service stop",""))
-		self.Continue = False
-
-	def SvcDoRun(self):
-		servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, servicemanager.PYS_SERVICE_STARTED, (self._svc_name_,''))
-		self.main()
-
-
-	def main(self):
-		controller = Leap.Controller()
-		self.Continue = True
-		
-		
-		exitCommand = HandCommand('delivery')
-		exitCommand.addPositions("C", "A", "C", "E")
-		
-		bloup = HandCommand('rien')
-		bloup.addPositions("A", "KH", "A")
-		#bloup.register_command(['"D:\Program Files (x86)\Notepad++\notepad++.exe"'])
-		bloup.register_command(['python2', 'createprocessasuser.py', '"C:\Windows\System32\notepad.exe"'])
-		
-		deliveryFolder = HandCommand('delivery')
-		deliveryFolder.addPositions("FV", "A", "RS")
-		deliveryFolder.register_command(['explorer.exe', 'Z:\VFAC\Livraisons'])
-		#deliveryFolder.register_command(['C:\Users\pierre.hamelin\Documents\devleappython\test\vbscripts\test1.vbs'])
-		
-		while (self.Continue == True):			
-			time.sleep(0.25);
-			frame = controller.frame()
-			handlist = frame.hands
-			if handlist.is_empty:
-				continue
-			hand = HandWrapper(handlist[0])
-						
-			## positions logic
-			positions = []
-			if (hand.position_a()):
-				positions.append("A")
-			if (hand.position_b()):
-				positions.append("D")
-			if (hand.position_c()):
-				positions.append("C")
-			if (hand.position_d()):
-				positions.append("D")
-			if (hand.position_e()):
-				positions.append("E")
-			if (hand.position_regular()):
-				positions.append("REG")
-			if (hand.position_fist()):
-				positions.append("FIST")
-			if (hand.position_king_hand()):
-				positions.append("KH")
-			if (hand.position_flat_v()):
-				positions.append("FV")
-			if (hand.position_revert_spiderman()):
-				positions.append("RS")
-
-			## commands execution logic
-			bloup.elapsed_positions(positions)
-			#deliveryFolder.elapsed_positions(positions)
-			exitCommand.elapsed_positions(positions)
-			
-			if (deliveryFolder.validated):
-				deliveryFolder.reinit()
-				deliveryFolder.exec_command()
-				servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Opened delivery folder",""))
-				
-			if (bloup.validated):
-				bloup.reinit()
-				bloup.exec_command()
-				servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Bloup requested",""))
-			
-			if (exitCommand.validated == True):
-				servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Stopped receiving events",""))
-				self.Continue = False
-			
-		servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 0xF000, ("Fin de l'execution du script",""))
-		
-
-if __name__ == '__main__':
-	win32serviceutil.HandleCommandLine(AppServerSvc)
+	# thumb, index and middle fingers are extended, hand about flat, all other fingers are folded
+	def position_flat_gun(self):
+		if (self.is_about_flat() and self.specific_fingers_extended(Leap.Finger.TYPE_THUMB, Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE) and self.fingers_jointed(Leap.Finger.TYPE_INDEX, Leap.Finger.TYPE_MIDDLE)):
+			return True
+		return False

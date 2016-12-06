@@ -3,7 +3,7 @@
 		<frequency>0.10</frequency>
 		<beep>all</beep>
 	</config>
-	<command name="cmd">
+	<command name="cmd" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>E</step>
 			<step>REG</step>
@@ -13,7 +13,7 @@
 		<exec program="C:\Windows\System32\cmd.exe">
 		</exec>
 	</command>
-	<command name="deliveryFolder">
+	<command name="deliveryFolder" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>FV</step>
 			<step>A</step>
@@ -23,7 +23,7 @@
 			<argument value="D:\Documents\Dev\py\LeapMotion\LeapMotionHandDetector\service"/>
 		</exec>
 	</command>
-	<command name="league">
+	<command name="league" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>FIST</step>
 			<step>C</step>
@@ -32,7 +32,7 @@
 		<exec program="C:\Riot Games\League of Legends\LeagueClient.exe">
 		</exec>
 	</command>
-	<command name="sleep">
+	<command name="sleep" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>REG</step>
 			<step>FIST</step>
@@ -44,7 +44,7 @@
 			<argument value="0,1,0"/>
 		</exec>
 	</command>
-	<command name="drive">
+	<command name="drive" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>KH</step>
 			<step>C</step>
@@ -54,7 +54,7 @@
 			<argument value="https://drive.google.com/drive/u/0/my-drive?ths=true"/>
 		</exec>
 	</command>
-	<command name="chrome">
+	<command name="chrome" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>KH</step>
 			<step>C</step>
@@ -64,7 +64,7 @@
 			<argument value="https://www.google.com/"/>
 		</exec>
 	</command>
-	<command name="chrome">
+	<command name="chromecognito" stopping="false" max_expectancy_time="3000">
 		<steps>
 			<step>KH</step>
 			<step>C</step>
@@ -74,22 +74,22 @@
 			<argument value="-incognito"/>
 		</exec>
 	</command>
-	<command name="LeftArrow">
+	<command name="LeftArrow" stopping="true" max_expectancy_time="500">
 		<!-- http://social.technet.microsoft.com/wiki/contents/articles/5169.vbscript-sendkeys-method.aspx -->
 		<steps>
-			<step>FP</step>
-			<step>PT</step>
+			<step>A</step>
+			<step>FV</step>
 		</steps>
 		<exec program="tools\sendKeys.bat">
 			<argument value=""/>
 			<argument value="{LEFT}"/>
 		</exec>
 	</command>
-	<command name="RightArrow">
+	<command name="RightArrow" stopping="true" max_expectancy_time="500">
 		<!-- http://social.technet.microsoft.com/wiki/contents/articles/5169.vbscript-sendkeys-method.aspx -->
 		<steps>
-			<step>FP</step>
-			<step>PP</step>
+			<step>FG</step>
+			<step>C8</step>
 		</steps>
 		<exec program="tools\sendKeys.bat">
 			<argument value=""/>
